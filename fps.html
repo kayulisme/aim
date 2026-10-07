@@ -1,0 +1,2713 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+
+<title>FPS</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-touch-callout:none;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#080a0d;
+    font-family:Arial,sans-serif;
+    touch-action:none;
+}
+
+#game{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    cursor:crosshair;
+    background:
+        radial-gradient(circle at center,#252a31 0%,#15191e 45%,#090b0e 100%);
+}
+
+/* BACKGROUND */
+
+#background{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+#backWall{
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:120px 120px;
+}
+
+#ground{
+    position:absolute;
+    left:-20%;
+    bottom:-35%;
+    width:140%;
+    height:65%;
+
+    background:
+        linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+
+    background-size:100px 100px;
+
+    transform:
+        perspective(700px)
+        rotateX(65deg);
+
+    transform-origin:center top;
+}
+
+#world{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+}
+
+/* TARGET */
+
+.target{
+    position:absolute;
+    width:75px;
+    height:75px;
+    border-radius:50%;
+
+    background:
+        radial-gradient(
+            circle,
+            white 0%,
+            white 13%,
+            #ff2020 14%,
+            #ff2020 30%,
+            #111 31%,
+            #111 48%,
+            #ff2020 49%,
+            #ff2020 65%,
+            #111 66%
+        );
+
+    box-shadow:
+        0 0 15px rgba(255,0,0,.8),
+        0 0 35px rgba(255,0,0,.3);
+
+    transform:translate(-50%,-50%);
+}
+
+.target.damaged{
+    background:
+        radial-gradient(
+            circle,
+            white 0%,
+            white 13%,
+            #ffd000 14%,
+            #ffd000 30%,
+            #111 31%,
+            #111 48%,
+            #ffd000 49%,
+            #ffd000 65%,
+            #111 66%
+        );
+
+    box-shadow:
+        0 0 15px rgba(255,200,0,.9),
+        0 0 35px rgba(255,150,0,.5);
+}
+
+.target.moving{
+    animation:targetPulse .7s infinite alternate;
+}
+
+@keyframes targetPulse{
+    from{filter:brightness(1)}
+    to{filter:brightness(1.25)}
+}
+
+/* INDICATOR */
+
+#targetIndicator{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:80px;
+    height:80px;
+    transform:translate(-50%,-50%);
+    z-index:45;
+    pointer-events:none;
+    display:none;
+}
+
+#targetArrow{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:0;
+    height:0;
+
+    border-left:14px solid transparent;
+    border-right:14px solid transparent;
+    border-bottom:32px solid #ff2020;
+
+    transform:
+        translate(-50%,-50%)
+        rotate(0deg);
+
+    filter:
+        drop-shadow(0 0 6px red)
+        drop-shadow(0 0 12px rgba(255,0,0,.7));
+}
+
+/* CROSSHAIR */
+
+#crosshair{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:24px;
+    height:24px;
+    transform:translate(-50%,-50%);
+    z-index:50;
+    pointer-events:none;
+}
+
+#crosshair::before,
+#crosshair::after{
+    content:"";
+    position:absolute;
+    background:white;
+    box-shadow:0 0 4px black;
+}
+
+#crosshair::before{
+    width:24px;
+    height:2px;
+    left:0;
+    top:11px;
+}
+
+#crosshair::after{
+    width:2px;
+    height:24px;
+    left:11px;
+    top:0;
+}
+
+/* HUD */
+
+#hud{
+    position:absolute;
+    left:20px;
+    top:18px;
+    color:white;
+    font-size:17px;
+    line-height:1.55;
+    z-index:60;
+    text-shadow:0 0 5px black;
+}
+
+#comboHUD{
+    color:#ffd000;
+    font-weight:bold;
+}
+
+/* FLASH */
+
+#flashWarning{
+    position:absolute;
+    inset:0;
+    z-index:40;
+    display:none;
+    pointer-events:none;
+}
+
+#dodgeZone{
+    position:absolute;
+    width:145px;
+    height:145px;
+    border:5px solid red;
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+
+    box-shadow:
+        0 0 20px red,
+        0 0 45px rgba(255,0,0,.7),
+        inset 0 0 20px rgba(255,0,0,.4);
+}
+
+#flashOverlay{
+    position:absolute;
+    inset:0;
+    z-index:35;
+    pointer-events:none;
+    opacity:0;
+    background:white;
+}
+
+/* SLASH */
+
+#slashWarning{
+    position:absolute;
+    inset:0;
+    z-index:75;
+    display:none;
+    pointer-events:none;
+}
+
+#parryStatus{
+    position:absolute;
+    left:50%;
+    top:18%;
+    transform:translateX(-50%);
+
+    width:210px;
+    height:210px;
+    border-radius:50%;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+
+    font-size:27px;
+    font-weight:bold;
+
+    border:6px solid red;
+    color:#ff2020;
+
+    box-shadow:
+        0 0 20px red,
+        inset 0 0 25px rgba(255,0,0,.25);
+}
+
+#parryStatus.ready{
+    border-color:#ffd000;
+    color:#ffd000;
+    box-shadow:
+        0 0 25px #ffd000,
+        0 0 55px rgba(255,200,0,.6);
+}
+
+#parryStatus.now{
+    border-color:#00ff66;
+    color:#00ff66;
+    box-shadow:
+        0 0 25px #00ff66,
+        0 0 65px rgba(0,255,100,.8);
+
+    animation:readyPulse .22s infinite alternate;
+}
+
+@keyframes readyPulse{
+    from{
+        transform:translateX(-50%) scale(1);
+    }
+    to{
+        transform:translateX(-50%) scale(1.08);
+    }
+}
+
+#slash{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:520px;
+    height:10px;
+    border-radius:20px;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            white,
+            #ff2020,
+            white,
+            transparent
+        );
+
+    box-shadow:
+        0 0 10px white,
+        0 0 25px red,
+        0 0 50px red;
+
+    transform-origin:center;
+    display:none;
+}
+
+.slashAnimation{
+    animation:
+        slashMove
+        var(--slash-duration)
+        linear
+        forwards;
+}
+
+@keyframes slashMove{
+    0%{
+        opacity:0;
+        transform:
+            translate(-50%,-50%)
+            scaleX(.2)
+            rotate(var(--slash-angle));
+    }
+
+    20%{opacity:1}
+
+    100%{
+        opacity:1;
+        transform:
+            translate(-50%,-50%)
+            scaleX(1)
+            rotate(var(--slash-angle));
+    }
+}
+
+#parryZone{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:120px;
+    height:120px;
+    border:3px dashed white;
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+    opacity:0;
+
+    box-shadow:
+        0 0 15px rgba(255,255,255,.4),
+        inset 0 0 20px rgba(255,255,255,.15);
+}
+
+#slashText{
+    position:absolute;
+    top:9%;
+    left:50%;
+    transform:translateX(-50%);
+
+    color:#ff2020;
+    font-size:30px;
+    font-weight:bold;
+
+    text-shadow:
+        0 0 10px red,
+        0 0 25px red;
+
+    text-align:center;
+}
+
+#parryMessage{
+    position:absolute;
+    left:50%;
+    top:68%;
+    transform:translate(-50%,-50%);
+
+    color:#00ff66;
+    font-size:38px;
+    font-weight:bold;
+
+    text-shadow:
+        0 0 10px #00ff66,
+        0 0 30px #00ff66;
+
+    display:none;
+}
+
+/* EFFECTS */
+
+#penalty{
+    position:absolute;
+    left:50%;
+    top:60%;
+    transform:translate(-50%,-50%);
+
+    color:red;
+    font-size:30px;
+    font-weight:bold;
+    opacity:0;
+    z-index:80;
+    pointer-events:none;
+
+    text-shadow:0 0 10px red;
+}
+
+.hitEffect{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:100px;
+    height:100px;
+
+    border:3px solid white;
+    border-radius:50%;
+
+    transform:translate(-50%,-50%);
+    animation:hit .25s forwards;
+
+    pointer-events:none;
+    z-index:70;
+}
+
+@keyframes hit{
+    from{
+        opacity:1;
+        transform:
+            translate(-50%,-50%)
+            scale(.3);
+    }
+
+    to{
+        opacity:0;
+        transform:
+            translate(-50%,-50%)
+            scale(1.8);
+    }
+}
+
+#comboText{
+    position:absolute;
+    left:50%;
+    top:30%;
+    transform:translate(-50%,-50%);
+
+    color:#ffd000;
+    font-size:32px;
+    font-weight:bold;
+
+    text-shadow:
+        0 0 10px #ffd000,
+        0 0 25px rgba(255,180,0,.7);
+
+    opacity:0;
+    z-index:85;
+    pointer-events:none;
+}
+
+.comboAnimation{
+    animation:comboPop .45s ease-out;
+}
+
+@keyframes comboPop{
+    0%{
+        opacity:0;
+        transform:translate(-50%,-50%) scale(.5);
+    }
+
+    35%{
+        opacity:1;
+        transform:translate(-50%,-50%) scale(1.25);
+    }
+
+    100%{
+        opacity:0;
+        transform:translate(-50%,-50%) scale(1);
+    }
+}
+
+/* MENUS */
+
+.menu{
+    position:absolute;
+    inset:0;
+    z-index:100;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    color:white;
+    background:rgba(5,7,10,.96);
+
+    text-align:center;
+    padding:20px;
+}
+
+.menu h1{
+    font-size:50px;
+    margin-bottom:30px;
+
+    text-shadow:
+        0 0 15px red,
+        0 0 35px rgba(255,0,0,.4);
+}
+
+button{
+    width:280px;
+    padding:15px;
+    margin:7px;
+
+    border-radius:8px;
+    border:1px solid #555;
+
+    background:#151515;
+    color:white;
+
+    font-size:18px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#292929;
+    box-shadow:0 0 15px rgba(255,0,0,.5);
+}
+
+.sliderBox{
+    text-align:center;
+    margin-top:15px;
+}
+
+input[type=range]{
+    width:260px;
+}
+
+/* =========================
+   MOBILE CONTROLS
+========================= */
+
+#mobileControls{
+    display:none;
+    position:absolute;
+    inset:0;
+    z-index:90;
+    pointer-events:none;
+}
+
+.mobileButton{
+    position:absolute;
+
+    width:105px;
+    height:105px;
+
+    border-radius:50%;
+
+    border:3px solid rgba(255,255,255,.7);
+
+    background:rgba(20,20,20,.65);
+
+    color:white;
+
+    font-size:18px;
+    font-weight:bold;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    pointer-events:auto;
+
+    -webkit-tap-highlight-color:transparent;
+}
+
+#fireButton{
+    right:25px;
+    bottom:35px;
+
+    border-color:#ff3030;
+
+    box-shadow:
+        0 0 15px rgba(255,0,0,.5);
+}
+
+#parryButton{
+    right:145px;
+    bottom:35px;
+
+    border-color:#00ff66;
+
+    box-shadow:
+        0 0 15px rgba(0,255,100,.4);
+}
+
+#pauseButton{
+    right:20px;
+    top:20px;
+
+    width:55px;
+    height:55px;
+
+    font-size:14px;
+}
+
+#aimArea{
+    position:absolute;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    pointer-events:auto;
+}
+
+/* Do not block buttons */
+
+@media (pointer:coarse){
+
+    #mobileControls{
+        display:block;
+    }
+
+    #game{
+        cursor:none;
+    }
+
+    #hud{
+        left:12px;
+        top:10px;
+        font-size:14px;
+    }
+
+    #crosshair{
+        width:20px;
+        height:20px;
+    }
+
+    #crosshair::before{
+        width:20px;
+    }
+
+    #crosshair::after{
+        height:20px;
+    }
+
+    .menu h1{
+        font-size:38px;
+        margin-bottom:18px;
+    }
+
+    .menu button{
+        width:min(280px,80vw);
+        padding:13px;
+        font-size:17px;
+    }
+
+    .menu p{
+        margin:5px;
+        font-size:13px;
+    }
+
+    #parryStatus{
+        width:150px;
+        height:150px;
+        top:15%;
+        font-size:21px;
+    }
+
+    #slashText{
+        top:7%;
+        font-size:22px;
+    }
+
+    #parryMessage{
+        top:63%;
+        font-size:30px;
+    }
+}
+
+/* SMALL PHONES */
+
+@media (max-width:600px) and (max-height:500px){
+
+    #fireButton,
+    #parryButton{
+        width:78px;
+        height:78px;
+        bottom:18px;
+    }
+
+    #fireButton{
+        right:18px;
+    }
+
+    #parryButton{
+        right:108px;
+    }
+
+    #pauseButton{
+        width:48px;
+        height:48px;
+        top:12px;
+        right:12px;
+    }
+}
+
+/* PAUSE / END */
+
+#pauseMenu,
+#endScreen{
+    display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="background">
+    <div id="backWall"></div>
+    <div id="ground"></div>
+</div>
+
+<div id="world"></div>
+
+<div id="targetIndicator">
+    <div id="targetArrow"></div>
+</div>
+
+<div id="hud">
+    Score:
+    <span id="score">0</span><br>
+
+    Hits:
+    <span id="hits">0</span><br>
+
+    Misses:
+    <span id="misses">0</span><br>
+
+    Accuracy:
+    <span id="accuracy">100</span>%<br>
+
+    Round:
+    <span id="round">0</span><br>
+
+    Mode:
+    <span id="modeText">Medium</span><br>
+
+    <span id="comboHUD">
+        Combo: 0
+    </span>
+</div>
+
+<div id="crosshair"></div>
+
+<!-- FLASH -->
+
+<div id="flashWarning">
+    <div id="dodgeZone"></div>
+</div>
+
+<div id="flashOverlay"></div>
+
+<!-- SLASH -->
+
+<div id="slashWarning">
+
+    <div id="slashText">
+        GET READY...
+    </div>
+
+    <div id="parryStatus" class="waiting">
+        WAIT
+    </div>
+
+    <div id="slash"></div>
+
+    <div id="parryZone"></div>
+
+</div>
+
+<div id="parryMessage">
+    PARRY!
+</div>
+
+<div id="penalty"></div>
+
+<div id="comboText"></div>
+
+
+<!-- MOBILE CONTROLS -->
+
+<div id="mobileControls">
+
+    <div id="aimArea"></div>
+
+    <div
+        id="pauseButton"
+        class="mobileButton">
+        II
+    </div>
+
+    <div
+        id="parryButton"
+        class="mobileButton">
+        PARRY
+    </div>
+
+    <div
+        id="fireButton"
+        class="mobileButton">
+        FIRE
+    </div>
+
+</div>
+
+
+<!-- MAIN MENU -->
+
+<div id="mainMenu" class="menu">
+
+    <h1>FPS</h1>
+
+    <button onclick="startGame('easy')">
+        EASY
+    </button>
+
+    <button onclick="startGame('medium')">
+        MEDIUM
+    </button>
+
+    <button onclick="startGame('hard')">
+        HARD
+    </button>
+
+    <button onclick="startGame('endless')">
+        ENDLESS
+    </button>
+
+    <div class="sliderBox">
+
+        Sensitivity:
+        <span id="sensValue">1.30</span>
+
+        <br>
+
+        <input
+            id="sensitivity"
+            type="range"
+            min="0.10"
+            max="3.00"
+            step="0.05"
+            value="1.30">
+
+    </div>
+
+    <p>Desktop: Mouse to aim • Left Click to shoot</p>
+    <p>Mobile: Drag to aim • FIRE to shoot</p>
+    <p>F / PARRY = timed parry</p>
+    <p>Some targets move</p>
+    <p>Some targets need 2 shots</p>
+    <p>Build combos with consecutive hits</p>
+    <p>ESC / II to pause</p>
+
+</div>
+
+
+<!-- PAUSE -->
+
+<div id="pauseMenu" class="menu">
+
+    <h1>PAUSED</h1>
+
+    <button onclick="resumeGame()">
+        RESUME
+    </button>
+
+    <button onclick="returnToMenu()">
+        MAIN MENU
+    </button>
+
+</div>
+
+
+<!-- END -->
+
+<div id="endScreen" class="menu">
+
+    <h1>GAME OVER</h1>
+
+    <p>
+        Score:
+        <span id="finalScore">0</span>
+    </p>
+
+    <p>
+        Accuracy:
+        <span id="finalAccuracy">100</span>%
+    </p>
+
+    <p>
+        Best Combo:
+        <span id="finalCombo">0</span>
+    </p>
+
+    <button onclick="returnToMenu()">
+        MAIN MENU
+    </button>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   GAME VARIABLES
+========================= */
+
+let running=false;
+let paused=false;
+
+let gameMode="medium";
+let sensitivity=1.30;
+
+let score=0;
+let hits=0;
+let misses=0;
+let round=0;
+let accuracy=100;
+
+let combo=0;
+let bestCombo=0;
+
+let yaw=0;
+let pitch=0;
+
+const FOV=90;
+const VERTICAL_FOV=60;
+
+
+/* TARGET */
+
+let target=null;
+
+let targetYaw=0;
+let targetPitch=0;
+let targetDistance=8;
+
+let targetTimerID=null;
+let targetMoveTimerID=null;
+
+let targetHits=0;
+let targetRequiredHits=1;
+
+const DOUBLE_SHOT_CHANCE=.25;
+
+let targetMoving=false;
+
+
+/* FLASH */
+
+let flashMinDelay=900;
+let flashMaxDelay=1800;
+
+let flashMinDodge=700;
+let flashMaxDodge=1200;
+
+let flashActive=false;
+
+let flashYaw=0;
+let flashPitch=0;
+
+let flashTimerID=null;
+let flashDodgeTimerID=null;
+
+let blindActive=false;
+
+
+/* SLASH */
+
+let slashMinDelay=2500;
+let slashMaxDelay=5000;
+
+let slashDuration=700;
+let parryOpenTime=400;
+
+let slashTimerID=null;
+let slashFailTimerID=null;
+let parryWindowTimerID=null;
+
+let slashActive=false;
+let parryWindowOpen=false;
+
+
+/* ELEMENTS */
+
+const game=document.getElementById("game");
+const world=document.getElementById("world");
+
+const backWall=document.getElementById("backWall");
+const ground=document.getElementById("ground");
+
+const scoreText=document.getElementById("score");
+const hitsText=document.getElementById("hits");
+const missesText=document.getElementById("misses");
+const accuracyText=document.getElementById("accuracy");
+const roundText=document.getElementById("round");
+const modeText=document.getElementById("modeText");
+const comboHUD=document.getElementById("comboHUD");
+
+const comboText=document.getElementById("comboText");
+
+const mainMenu=document.getElementById("mainMenu");
+const pauseMenu=document.getElementById("pauseMenu");
+const endScreen=document.getElementById("endScreen");
+
+const flashWarning=document.getElementById("flashWarning");
+const dodgeZone=document.getElementById("dodgeZone");
+const flashOverlay=document.getElementById("flashOverlay");
+
+const penalty=document.getElementById("penalty");
+
+const sensitivitySlider=document.getElementById("sensitivity");
+const sensValue=document.getElementById("sensValue");
+
+const targetIndicator=document.getElementById("targetIndicator");
+const targetArrow=document.getElementById("targetArrow");
+
+const slashWarning=document.getElementById("slashWarning");
+const slash=document.getElementById("slash");
+const parryZone=document.getElementById("parryZone");
+const slashText=document.getElementById("slashText");
+const parryMessage=document.getElementById("parryMessage");
+const parryStatus=document.getElementById("parryStatus");
+
+const fireButton=document.getElementById("fireButton");
+const parryButton=document.getElementById("parryButton");
+const pauseButton=document.getElementById("pauseButton");
+const aimArea=document.getElementById("aimArea");
+
+
+/* SENSITIVITY */
+
+sensitivitySlider.addEventListener("input",function(){
+
+    sensitivity=Number(sensitivitySlider.value);
+
+    sensValue.textContent=
+        sensitivity.toFixed(2);
+
+});
+
+
+/* MATH */
+
+function normalizeAngle(angle){
+
+    while(angle>180) angle-=360;
+    while(angle<-180) angle+=360;
+
+    return angle;
+}
+
+function angleDifference(a,b){
+    return normalizeAngle(a-b);
+}
+
+function random(min,max){
+    return Math.random()*(max-min)+min;
+}
+
+
+/* DIFFICULTY */
+
+function setDifficulty(mode){
+
+    if(mode==="easy"){
+
+        flashMinDelay=1400;
+        flashMaxDelay=2500;
+
+        flashMinDodge=1000;
+        flashMaxDodge=1600;
+
+        slashMinDelay=3500;
+        slashMaxDelay=6000;
+
+        slashDuration=1000;
+        parryOpenTime=400;
+
+        modeText.textContent="Easy";
+    }
+
+    else if(mode==="medium"){
+
+        flashMinDelay=900;
+        flashMaxDelay=1800;
+
+        flashMinDodge=700;
+        flashMaxDodge=1200;
+
+        slashMinDelay=2500;
+        slashMaxDelay=5000;
+
+        slashDuration=800;
+        parryOpenTime=450;
+
+        modeText.textContent="Medium";
+    }
+
+    else if(mode==="hard"){
+
+        flashMinDelay=600;
+        flashMaxDelay=1200;
+
+        flashMinDodge=400;
+        flashMaxDodge=700;
+
+        slashMinDelay=1600;
+        slashMaxDelay=3200;
+
+        slashDuration=750;
+        parryOpenTime=400;
+
+        modeText.textContent="Hard";
+    }
+
+    else if(mode==="endless"){
+
+        slashMinDelay=Math.max(
+            1000,
+            3500-round*40
+        );
+
+        slashMaxDelay=Math.max(
+            1800,
+            5500-round*50
+        );
+
+        slashDuration=Math.max(
+            500,
+            900-round*5
+        );
+
+        parryOpenTime=Math.max(
+            300,
+            500-round*3
+        );
+
+        flashMinDelay=Math.max(
+            400,
+            900-round*8
+        );
+
+        flashMaxDelay=Math.max(
+            800,
+            1800-round*10
+        );
+
+        flashMinDodge=Math.max(
+            250,
+            700-round*5
+        );
+
+        flashMaxDodge=Math.max(
+            450,
+            1200-round*7
+        );
+
+        modeText.textContent="Endless";
+    }
+}
+
+
+/* START */
+
+function startGame(mode){
+
+    gameMode=mode;
+
+    running=true;
+    paused=false;
+
+    score=0;
+    hits=0;
+    misses=0;
+    round=0;
+    accuracy=100;
+
+    combo=0;
+    bestCombo=0;
+
+    yaw=0;
+    pitch=0;
+
+    clearTarget();
+    clearFlash();
+    clearSlash();
+
+    mainMenu.style.display="none";
+    pauseMenu.style.display="none";
+    endScreen.style.display="none";
+
+    setDifficulty(mode);
+
+    updateHUD();
+
+    spawnTarget();
+
+    scheduleFlash();
+    scheduleSlash();
+
+    if(!isMobile()){
+
+        game.requestPointerLock();
+
+    }
+}
+
+
+/* MOBILE DETECTION */
+
+function isMobile(){
+
+    return window.matchMedia(
+        "(pointer:coarse)"
+    ).matches;
+}
+
+
+/* SPAWN TARGET */
+
+function spawnTarget(){
+
+    if(!running || paused)
+        return;
+
+    if(
+        gameMode!=="endless" &&
+        round>=50
+    ){
+
+        endGame();
+        return;
+    }
+
+    clearTimeout(targetTimerID);
+    clearTimeout(targetMoveTimerID);
+
+    if(target){
+
+        target.remove();
+        target=null;
+    }
+
+    round++;
+
+    setDifficulty(gameMode);
+
+    targetHits=0;
+
+    targetRequiredHits=
+        Math.random()<DOUBLE_SHOT_CHANCE
+        ?2
+        :1;
+
+    targetYaw=
+        yaw+random(-55,55);
+
+    targetPitch=
+        pitch+random(-28,28);
+
+    targetDistance=
+        random(6,11);
+
+    let movingChance=.30;
+
+    if(gameMode==="easy")
+        movingChance=.20;
+
+    if(gameMode==="hard")
+        movingChance=.45;
+
+    if(gameMode==="endless")
+        movingChance=Math.min(
+            .65,
+            .30+round*.008
+        );
+
+    targetMoving=
+        Math.random()<movingChance;
+
+    target=
+        document.createElement("div");
+
+    target.className="target";
+
+    if(targetMoving)
+        target.classList.add("moving");
+
+    const size=random(55,90);
+
+    target.style.width=size+"px";
+    target.style.height=size+"px";
+
+    world.appendChild(target);
+
+    renderTarget();
+
+    if(targetMoving)
+        startTargetMovement();
+
+    targetTimerID=
+        setTimeout(
+            targetTimeout,
+            3000
+        );
+}
+
+
+/* MOVEMENT */
+
+function startTargetMovement(){
+
+    clearTimeout(targetMoveTimerID);
+
+    function move(){
+
+        if(
+            !running ||
+            paused ||
+            !target ||
+            !targetMoving
+        )
+            return;
+
+        let speed=.7;
+
+        if(gameMode==="easy")
+            speed=.45;
+
+        if(gameMode==="hard")
+            speed=1.0;
+
+        if(gameMode==="endless")
+            speed=Math.min(
+                1.5,
+                .65+round*.015
+            );
+
+        targetYaw+=
+            Math.sin(Date.now()/500)
+            *speed*.35;
+
+        targetPitch+=
+            Math.cos(Date.now()/600)
+            *speed*.25;
+
+        targetYaw=Math.max(
+            yaw-65,
+            Math.min(
+                yaw+65,
+                targetYaw
+            )
+        );
+
+        targetPitch=Math.max(
+            pitch-32,
+            Math.min(
+                pitch+32,
+                targetPitch
+            )
+        );
+
+        targetMoveTimerID=
+            setTimeout(move,30);
+    }
+
+    move();
+}
+
+
+/* TARGET TIMEOUT */
+
+function targetTimeout(){
+
+    if(!running || paused || !target)
+        return;
+
+    misses++;
+    combo=0;
+    score-=50;
+
+    calculateAccuracy();
+
+    showPenalty("-50");
+
+    spawnTarget();
+    updateHUD();
+}
+
+
+/* RENDER TARGET */
+
+function renderTarget(){
+
+    if(!target){
+
+        hideTargetIndicator();
+        return;
+    }
+
+    const horizontal=
+        angleDifference(
+            targetYaw,
+            yaw
+        );
+
+    const vertical=
+        targetPitch-pitch;
+
+    if(
+        Math.abs(horizontal)<=FOV/2 &&
+        Math.abs(vertical)<=VERTICAL_FOV/2
+    ){
+
+        target.style.display="block";
+
+        const x=
+            50+
+            (horizontal/(FOV/2))*50;
+
+        const y=
+            50-
+            (vertical/(VERTICAL_FOV/2))*50;
+
+        const scale=
+            Math.max(
+                .5,
+                Math.min(
+                    1.35,
+                    8/targetDistance
+                )
+            );
+
+        target.style.left=x+"%";
+        target.style.top=y+"%";
+
+        target.style.transform=
+            `translate(-50%,-50%)
+             scale(${scale})`;
+
+        hideTargetIndicator();
+    }
+
+    else{
+
+        target.style.display="none";
+
+        showTargetIndicator(
+            horizontal,
+            vertical
+        );
+    }
+}
+
+
+/* INDICATOR */
+
+function showTargetIndicator(
+    horizontal,
+    vertical
+){
+
+    targetIndicator.style.display="block";
+
+    const angle=
+        Math.atan2(
+            -vertical,
+            horizontal
+        )*180/Math.PI;
+
+    targetArrow.style.transform=
+        `translate(-50%,-50%)
+         rotate(${angle+90}deg)`;
+
+    const distance=43;
+
+    const rad=
+        angle*Math.PI/180;
+
+    targetIndicator.style.left=
+        50+
+        Math.cos(rad)*distance+
+        "%";
+
+    targetIndicator.style.top=
+        50+
+        Math.sin(rad)*distance+
+        "%";
+}
+
+function hideTargetIndicator(){
+
+    targetIndicator.style.display="none";
+}
+
+
+/* SHOOT */
+
+function shoot(){
+
+    if(
+        !running ||
+        paused ||
+        blindActive
+    )
+        return;
+
+    if(!target)
+        return;
+
+    const horizontal=
+        Math.abs(
+            angleDifference(
+                targetYaw,
+                yaw
+            )
+        );
+
+    const vertical=
+        Math.abs(
+            targetPitch-pitch
+        );
+
+    if(
+        horizontal<=5 &&
+        vertical<=5
+    ){
+
+        successfulTargetHit();
+    }
+
+    else{
+
+        score-=25;
+        combo=0;
+
+        showPenalty("-25");
+        updateHUD();
+    }
+}
+
+
+/* TARGET HIT */
+
+function successfulTargetHit(){
+
+    targetHits++;
+
+    if(
+        targetRequiredHits===2 &&
+        targetHits===1
+    ){
+
+        score+=50;
+
+        target.classList.add("damaged");
+
+        createHitEffect();
+
+        updateHUD();
+
+        return;
+    }
+
+    if(
+        targetHits>=targetRequiredHits
+    ){
+
+        clearTimeout(targetTimerID);
+        clearTimeout(targetMoveTimerID);
+
+        targetTimerID=null;
+        targetMoveTimerID=null;
+
+        hits++;
+        combo++;
+
+        if(combo>bestCombo)
+            bestCombo=combo;
+
+        let multiplier=1;
+
+        if(combo>=5) multiplier=2;
+        if(combo>=10) multiplier=3;
+        if(combo>=20) multiplier=4;
+
+        const earned=100*multiplier;
+
+        score+=earned;
+
+        if(combo>=2){
+
+            showCombo(
+                combo,
+                multiplier,
+                earned
+            );
+        }
+
+        calculateAccuracy();
+
+        target.remove();
+        target=null;
+
+        hideTargetIndicator();
+
+        createHitEffect();
+
+        spawnTarget();
+        updateHUD();
+    }
+}
+
+
+/* COMBO */
+
+function showCombo(
+    currentCombo,
+    multiplier,
+    earned
+){
+
+    if(currentCombo<2)
+        return;
+
+    comboText.textContent=
+        "COMBO x"+
+        currentCombo+
+        "  +"+
+        earned;
+
+    if(multiplier>1)
+        comboText.textContent+=
+            "  ×"+multiplier;
+
+    comboText.classList.remove(
+        "comboAnimation"
+    );
+
+    void comboText.offsetWidth;
+
+    comboText.classList.add(
+        "comboAnimation"
+    );
+}
+
+
+/* ACCURACY */
+
+function calculateAccuracy(){
+
+    const total=hits+misses;
+
+    if(total<=0){
+
+        accuracy=100;
+        return;
+    }
+
+    accuracy=(hits/total)*100;
+}
+
+
+/* FLASH */
+
+function scheduleFlash(){
+
+    clearTimeout(flashTimerID);
+
+    if(
+        !running ||
+        paused ||
+        flashActive
+    )
+        return;
+
+    flashTimerID=
+        setTimeout(
+            startFlash,
+            random(
+                flashMinDelay,
+                flashMaxDelay
+            )
+        );
+}
+
+function startFlash(){
+
+    if(!running || paused)
+        return;
+
+    flashActive=true;
+
+    flashYaw=
+        yaw+random(-18,18);
+
+    flashPitch=
+        pitch+random(-12,12);
+
+    flashWarning.style.display="block";
+
+    renderFlash();
+
+    flashDodgeTimerID=
+        setTimeout(
+            flashFailed,
+            random(
+                flashMinDodge,
+                flashMaxDodge
+            )
+        );
+}
+
+function renderFlash(){
+
+    if(!flashActive)
+        return;
+
+    const horizontal=
+        angleDifference(
+            flashYaw,
+            yaw
+        );
+
+    const vertical=
+        flashPitch-pitch;
+
+    if(
+        Math.abs(horizontal)>FOV/2 ||
+        Math.abs(vertical)>VERTICAL_FOV/2
+    ){
+
+        dodgeFlash();
+        return;
+    }
+
+    const x=
+        50+
+        (horizontal/(FOV/2))*50;
+
+    const y=
+        50-
+        (vertical/(VERTICAL_FOV/2))*50;
+
+    dodgeZone.style.left=x+"%";
+    dodgeZone.style.top=y+"%";
+}
+
+function dodgeFlash(){
+
+    if(!flashActive)
+        return;
+
+    flashActive=false;
+
+    clearTimeout(
+        flashDodgeTimerID
+    );
+
+    flashDodgeTimerID=null;
+
+    flashWarning.style.display="none";
+
+    scheduleFlash();
+}
+
+function flashFailed(){
+
+    if(
+        !flashActive ||
+        !running ||
+        paused
+    )
+        return;
+
+    flashActive=false;
+
+    flashWarning.style.display="none";
+
+    blindActive=true;
+
+    flashOverlay.style.transition=
+        "opacity .03s linear";
+
+    flashOverlay.style.opacity="1";
+
+    setTimeout(function(){
+
+        flashOverlay.style.transition=
+            "opacity .2s ease";
+
+        flashOverlay.style.opacity="0";
+
+        blindActive=false;
+
+        scheduleFlash();
+
+    },300);
+}
+
+function clearFlash(){
+
+    clearTimeout(flashTimerID);
+    clearTimeout(flashDodgeTimerID);
+
+    flashTimerID=null;
+    flashDodgeTimerID=null;
+
+    flashActive=false;
+    blindActive=false;
+
+    flashWarning.style.display="none";
+    flashOverlay.style.opacity="0";
+}
+
+
+/* SLASH */
+
+function scheduleSlash(){
+
+    clearTimeout(slashTimerID);
+
+    if(
+        !running ||
+        paused ||
+        slashActive
+    )
+        return;
+
+    setDifficulty(gameMode);
+
+    slashTimerID=
+        setTimeout(
+            startSlash,
+            random(
+                slashMinDelay,
+                slashMaxDelay
+            )
+        );
+}
+
+
+/* START SLASH */
+
+function startSlash(){
+
+    if(
+        !running ||
+        paused ||
+        blindActive
+    ){
+
+        scheduleSlash();
+        return;
+    }
+
+    setDifficulty(gameMode);
+
+    slashActive=true;
+    parryWindowOpen=false;
+
+    let zoneSize=120;
+
+    if(gameMode==="easy")
+        zoneSize=165;
+
+    if(gameMode==="medium")
+        zoneSize=135;
+
+    if(gameMode==="hard")
+        zoneSize=115;
+
+    if(gameMode==="endless"){
+
+        zoneSize=Math.max(
+            85,
+            145-round*.8
+        );
+    }
+
+    parryZone.style.width=
+        zoneSize+"px";
+
+    parryZone.style.height=
+        zoneSize+"px";
+
+    const angle=random(0,360);
+
+    slash.style.setProperty(
+        "--slash-angle",
+        angle+"deg"
+    );
+
+    slash.style.setProperty(
+        "--slash-duration",
+        slashDuration+"ms"
+    );
+
+    slash.classList.remove(
+        "slashAnimation"
+    );
+
+    void slash.offsetWidth;
+
+    slash.classList.add(
+        "slashAnimation"
+    );
+
+    slashWarning.style.display="block";
+    slash.style.display="block";
+
+    parryStatus.className="waiting";
+    parryStatus.textContent="WAIT";
+
+    slashText.textContent="GET READY...";
+
+    parryZone.style.opacity="0";
+
+    const yellowTime=
+        Math.max(
+            0,
+            parryOpenTime-150
+        );
+
+    setTimeout(function(){
+
+        if(
+            !slashActive ||
+            parryWindowOpen
+        )
+            return;
+
+        parryStatus.className="ready";
+        parryStatus.textContent="GET READY";
+
+    },yellowTime);
+
+    parryWindowTimerID=
+        setTimeout(
+            function(){
+
+                if(!slashActive)
+                    return;
+
+                parryWindowOpen=true;
+
+                parryStatus.className="now";
+                parryStatus.textContent="PARRY!";
+
+                slashText.textContent=
+                    "PRESS PARRY NOW!";
+
+                parryZone.style.opacity="1";
+
+                slash.style.boxShadow=
+                    `
+                    0 0 15px white,
+                    0 0 35px #00ff66,
+                    0 0 70px rgba(0,255,100,.8)
+                    `;
+            },
+            parryOpenTime
+        );
+
+    slashFailTimerID=
+        setTimeout(
+            function(){
+
+                if(slashActive)
+                    slashFailed();
+
+            },
+            slashDuration
+        );
+}
+
+
+/* PARRY */
+
+function parrySlash(){
+
+    if(
+        !slashActive ||
+        !running ||
+        paused
+    )
+        return;
+
+    if(!parryWindowOpen){
+
+        score-=25;
+
+        showPenalty("TOO EARLY!");
+        updateHUD();
+
+        return;
+    }
+
+    slashActive=false;
+    parryWindowOpen=false;
+
+    clearTimeout(slashFailTimerID);
+    clearTimeout(parryWindowTimerID);
+
+    slashFailTimerID=null;
+    parryWindowTimerID=null;
+
+    slashWarning.style.display="none";
+    slash.style.display="none";
+
+    slash.classList.remove(
+        "slashAnimation"
+    );
+
+    parryZone.style.opacity="0";
+
+    slash.style.boxShadow="";
+
+    parryStatus.className="waiting";
+    parryStatus.textContent="WAIT";
+
+    score+=75;
+
+    parryMessage.textContent=
+        "PARRY! +75";
+
+    parryMessage.style.display="block";
+
+    setTimeout(function(){
+
+        parryMessage.style.display="none";
+
+    },500);
+
+    updateHUD();
+
+    scheduleSlash();
+}
+
+
+/* FAILED SLASH */
+
+function slashFailed(){
+
+    if(
+        !slashActive ||
+        !running ||
+        paused
+    )
+        return;
+
+    slashActive=false;
+    parryWindowOpen=false;
+
+    clearTimeout(parryWindowTimerID);
+
+    parryWindowTimerID=null;
+
+    slashWarning.style.display="none";
+    slash.style.display="none";
+
+    slash.classList.remove(
+        "slashAnimation"
+    );
+
+    parryZone.style.opacity="0";
+
+    slash.style.boxShadow="";
+
+    parryStatus.className="waiting";
+    parryStatus.textContent="WAIT";
+
+    combo=0;
+
+    if(target){
+
+        clearTimeout(targetTimerID);
+        clearTimeout(targetMoveTimerID);
+
+        targetTimerID=null;
+        targetMoveTimerID=null;
+
+        target.remove();
+        target=null;
+
+        hideTargetIndicator();
+    }
+
+    misses++;
+    score-=100;
+
+    calculateAccuracy();
+
+    showPenalty("-100 HIT!");
+
+    updateHUD();
+
+    spawnTarget();
+    scheduleSlash();
+}
+
+
+/* CLEAR SLASH */
+
+function clearSlash(){
+
+    clearTimeout(slashTimerID);
+    clearTimeout(slashFailTimerID);
+    clearTimeout(parryWindowTimerID);
+
+    slashTimerID=null;
+    slashFailTimerID=null;
+    parryWindowTimerID=null;
+
+    slashActive=false;
+    parryWindowOpen=false;
+
+    slashWarning.style.display="none";
+    slash.style.display="none";
+
+    slash.classList.remove(
+        "slashAnimation"
+    );
+
+    parryZone.style.opacity="0";
+
+    slash.style.boxShadow="";
+
+    parryStatus.className="waiting";
+    parryStatus.textContent="WAIT";
+}
+
+
+/* DESKTOP F */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key.toLowerCase()==="f" &&
+            slashActive
+        ){
+
+            event.preventDefault();
+
+            parrySlash();
+        }
+    }
+);
+
+
+/* ESC */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key==="Escape" &&
+            running &&
+            !paused
+        ){
+
+            pauseGame();
+        }
+    }
+);
+
+
+/* DESKTOP AIM */
+
+document.addEventListener(
+    "mousemove",
+    function(event){
+
+        if(
+            !running ||
+            paused ||
+            blindActive
+        )
+            return;
+
+        if(
+            document.pointerLockElement!==game
+        )
+            return;
+
+        yaw+=
+            event.movementX*
+            sensitivity*
+            .12;
+
+        pitch-=
+            event.movementY*
+            sensitivity*
+            .12;
+
+        pitch=Math.max(
+            -85,
+            Math.min(85,pitch)
+        );
+    }
+);
+
+
+/* DESKTOP SHOOT */
+
+document.addEventListener(
+    "mousedown",
+    function(event){
+
+        if(
+            event.button===0 &&
+            running &&
+            !paused &&
+            !blindActive &&
+            !isMobile()
+        ){
+
+            shoot();
+        }
+    }
+);
+
+
+/* POINTER LOCK */
+
+document.addEventListener(
+    "pointerlockchange",
+    function(){
+
+        if(!running || isMobile())
+            return;
+
+        if(
+            document.pointerLockElement!==game
+        ){
+
+            if(!paused)
+                pauseGame();
+        }
+    }
+);
+
+
+/* PAUSE */
+
+function pauseGame(){
+
+    if(!running || paused)
+        return;
+
+    paused=true;
+
+    clearTimeout(targetTimerID);
+    clearTimeout(targetMoveTimerID);
+    clearTimeout(flashTimerID);
+    clearTimeout(flashDodgeTimerID);
+    clearTimeout(slashTimerID);
+    clearTimeout(slashFailTimerID);
+    clearTimeout(parryWindowTimerID);
+
+    pauseMenu.style.display="flex";
+
+    if(!isMobile())
+        document.exitPointerLock();
+}
+
+
+/* RESUME */
+
+function resumeGame(){
+
+    if(!running || !paused)
+        return;
+
+    paused=false;
+
+    pauseMenu.style.display="none";
+
+    if(target){
+
+        targetTimerID=
+            setTimeout(
+                targetTimeout,
+                3000
+            );
+
+        if(targetMoving)
+            startTargetMovement();
+    }
+
+    if(!flashActive)
+        scheduleFlash();
+
+    if(!slashActive)
+        scheduleSlash();
+
+    if(!isMobile())
+        game.requestPointerLock();
+}
+
+
+/* CLEAR TARGET */
+
+function clearTarget(){
+
+    clearTimeout(targetTimerID);
+    clearTimeout(targetMoveTimerID);
+
+    targetTimerID=null;
+    targetMoveTimerID=null;
+
+    if(target){
+
+        target.remove();
+        target=null;
+    }
+
+    targetHits=0;
+    targetRequiredHits=1;
+    targetMoving=false;
+
+    hideTargetIndicator();
+}
+
+
+/* END GAME */
+
+function endGame(){
+
+    running=false;
+    paused=false;
+
+    clearTarget();
+    clearFlash();
+    clearSlash();
+
+    if(!isMobile())
+        document.exitPointerLock();
+
+    document.getElementById(
+        "finalScore"
+    ).textContent=score;
+
+    document.getElementById(
+        "finalAccuracy"
+    ).textContent=
+        accuracy.toFixed(1);
+
+    document.getElementById(
+        "finalCombo"
+    ).textContent=
+        bestCombo;
+
+    endScreen.style.display="flex";
+}
+
+
+/* MENU */
+
+function returnToMenu(){
+
+    running=false;
+    paused=false;
+
+    clearTarget();
+    clearFlash();
+    clearSlash();
+
+    if(!isMobile())
+        document.exitPointerLock();
+
+    pauseMenu.style.display="none";
+    endScreen.style.display="none";
+    mainMenu.style.display="flex";
+}
+
+
+/* EFFECT */
+
+function createHitEffect(){
+
+    const effect=
+        document.createElement("div");
+
+    effect.className="hitEffect";
+
+    game.appendChild(effect);
+
+    setTimeout(
+        ()=>effect.remove(),
+        300
+    );
+}
+
+
+/* PENALTY */
+
+function showPenalty(text){
+
+    penalty.textContent=text;
+
+    penalty.style.opacity="1";
+
+    setTimeout(
+        ()=>{
+            penalty.style.opacity="0";
+        },
+        350
+    );
+}
+
+
+/* HUD */
+
+function updateHUD(){
+
+    scoreText.textContent=score;
+    hitsText.textContent=hits;
+    missesText.textContent=misses;
+
+    accuracyText.textContent=
+        accuracy.toFixed(1);
+
+    roundText.textContent=round;
+
+    comboHUD.textContent=
+        "Combo: "+combo;
+
+    if(combo>=5){
+
+        comboHUD.textContent=
+            "Combo: "+
+            combo+
+            " 🔥 x"+
+            getMultiplier();
+    }
+}
+
+function getMultiplier(){
+
+    if(combo>=20) return 4;
+    if(combo>=10) return 3;
+    if(combo>=5) return 2;
+
+    return 1;
+}
+
+
+/* WORLD */
+
+function updateWorld(){
+
+    if(!running || paused)
+        return;
+
+    backWall.style.transform=
+        `translateX(${yaw*.25}px)`;
+
+    ground.style.transform=
+        `perspective(700px)
+         rotateX(65deg)
+         translateX(${yaw*.35}px)`;
+
+    renderTarget();
+
+    if(flashActive)
+        renderFlash();
+}
+
+
+/* GAME LOOP */
+
+function gameLoop(){
+
+    updateWorld();
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+
+
+/* =========================
+   MOBILE AIM
+========================= */
+
+let touchActive=false;
+let lastTouchX=0;
+let lastTouchY=0;
+
+aimArea.addEventListener(
+    "touchstart",
+    function(event){
+
+        if(!running || paused)
+            return;
+
+        if(event.touches.length!==1)
+            return;
+
+        const touch=event.touches[0];
+
+        touchActive=true;
+
+        lastTouchX=touch.clientX;
+        lastTouchY=touch.clientY;
+
+        event.preventDefault();
+
+    },
+    {passive:false}
+);
+
+
+aimArea.addEventListener(
+    "touchmove",
+    function(event){
+
+        if(
+            !touchActive ||
+            !running ||
+            paused ||
+            blindActive
+        )
+            return;
+
+        if(event.touches.length!==1)
+            return;
+
+        const touch=event.touches[0];
+
+        const dx=
+            touch.clientX-lastTouchX;
+
+        const dy=
+            touch.clientY-lastTouchY;
+
+        yaw+=
+            dx*
+            sensitivity*
+            .30;
+
+        pitch-=
+            dy*
+            sensitivity*
+            .30;
+
+        pitch=Math.max(
+            -85,
+            Math.min(85,pitch)
+        );
+
+        lastTouchX=touch.clientX;
+        lastTouchY=touch.clientY;
+
+        event.preventDefault();
+
+    },
+    {passive:false}
+);
+
+
+aimArea.addEventListener(
+    "touchend",
+    function(){
+
+        touchActive=false;
+
+    },
+    {passive:false}
+);
+
+
+/* MOBILE FIRE */
+
+fireButton.addEventListener(
+    "touchstart",
+    function(event){
+
+        event.preventDefault();
+
+        if(
+            running &&
+            !paused &&
+            !blindActive
+        ){
+
+            shoot();
+        }
+    },
+    {passive:false}
+);
+
+
+/* MOBILE PARRY */
+
+parryButton.addEventListener(
+    "touchstart",
+    function(event){
+
+        event.preventDefault();
+
+        if(
+            running &&
+            !paused
+        ){
+
+            parrySlash();
+        }
+    },
+    {passive:false}
+);
+
+
+/* MOBILE PAUSE */
+
+pauseButton.addEventListener(
+    "touchstart",
+    function(event){
+
+        event.preventDefault();
+
+        if(!running)
+            return;
+
+        if(paused)
+            resumeGame();
+        else
+            pauseGame();
+
+    },
+    {passive:false}
+);
+
+
+/* PREVENT MOBILE MENU / ZOOM */
+
+document.addEventListener(
+    "contextmenu",
+    function(event){
+        event.preventDefault();
+    }
+);
+
+document.addEventListener(
+    "gesturestart",
+    function(event){
+        event.preventDefault();
+    }
+);
+
+</script>
+
+</body>
+</html>
+```
